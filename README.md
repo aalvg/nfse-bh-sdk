@@ -13,7 +13,7 @@ Mínimo ```PHP 8.0```
 
 Efetue download utilizando composer
 
-```composer require cebpereira/nfse-bh-sdk```
+```composer require aalvg/nfse-bh-sdk```
 
 ## Começando
 
