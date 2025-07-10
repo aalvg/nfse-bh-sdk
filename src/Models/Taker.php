@@ -42,7 +42,13 @@ class Taker
     /**
      *@var NFse\Models\Address
      */
-    public $address;
+/*************  ✨ Windsurf Command ⭐  *************/
+    /**
+     * Construtor da classe.
+     *
+     * Inicializa o objeto Address.
+     */
+/*******  d7d1dbb7-06d0-426e-808b-49bae9ba530f  *******/    public $address;
 
     public function __construct()
     {

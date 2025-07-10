@@ -1,9 +1,7 @@
-<?php
-
-namespace NFse\Config;
+<?php namespace NFse\Config;
 
 use Exception;
-use League\Flysystem\Local\LocalFilesystemAdapter;
+use League\Flysystem\Adapter\Local;
 use League\Flysystem\Filesystem;
 use NFse\Config\WebService;
 use NFse\Models\Settings;
@@ -27,7 +25,7 @@ class API
     /**
      * retorna um subdiretório de storage
      */
-    public function getFolder($folder, $subfolder = false): string
+    public function getFolder($folder, $subfolder = false):string
     {
         try {
             if ($subfolder) {
@@ -46,7 +44,7 @@ class API
     public function checkFolders(): void
     {
         try {
-            $adapter = new LocalFilesystemAdapter(__DIR__ . "/../../storage/{$this->webservice->env}");
+            $adapter = new Local(__DIR__ . "/../../storage/{$this->webservice->env}");
             $filesystem = new Filesystem($adapter);
 
             //cria a pasta de ambiente

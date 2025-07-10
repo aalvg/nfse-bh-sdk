@@ -6,16 +6,16 @@ use NFse\Config\WebService;
 
 class Utils
 {
-    public static function isDate($str_dt, $str_dateformat, $str_timezone)
-    {
-        $date = \DateTime::createFromFormat($str_dateformat, $str_dt, new \DateTimeZone($str_timezone));
-
-        if (!$date) {
-            throw new \Exception('Data inválida');
-        }
-
-        return $date;
+public static function isDate($data, string $format = 'Y-m-d H:i:s', $timezone = 'America/Sao_Paulo')
+{
+    if (!is_string($data)) {
+        return false;
     }
+
+    $date = \DateTime::createFromFormat($format, $data, new \DateTimeZone($timezone));
+    return $date && $date->format($format) === $data;
+}
+
 
     public static function isValor($valor)
     {

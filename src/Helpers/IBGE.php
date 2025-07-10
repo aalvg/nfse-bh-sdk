@@ -1,6 +1,4 @@
-<?php
-
-namespace NFse\Helpers;
+<?php namespace NFse\Helpers;
 
 use NFse\Sanitizers\Num;
 

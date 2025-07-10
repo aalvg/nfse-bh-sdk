@@ -6,6 +6,12 @@ use Exception;
 use Mpdf\Mpdf;
 use NFse\Helpers\Utils;
 use NFse\Models\NFse;
+use Mpdf\HTMLParserMode;
+use Mpdf\Output\Destination;
+
+
+
+
 
 class PrintPDFNFse
 {
@@ -61,8 +67,20 @@ class PrintPDFNFse
             return $html;
         }
 
-        return $this->generatePdf($html, $outputType);
+        $pdfContent = $this->generatePdf($html, $outputType);
+
+        if ($outputType === 'D') {
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="NFse.pdf"');
+            echo $pdfContent;
+            exit;
+        }
+
+        return $pdfContent;
     }
+
+
+
 
     /**
      * Generates the HTML string for the NFS-e, replacing placeholders and adding
@@ -158,12 +176,12 @@ class PrintPDFNFse
                 Utils::mask((string) $this->nfse->taker->document, '###.###.###-##'),
             '{INSCRICAO_MUNICIPAL_TOMADOR}' => ($this->nfse->taker->municipalRegistration) ?
                 Utils::mask((string) $this->nfse->taker->municipalRegistration, '#######/###-#') : 'Não Informado',
-            '{LOGRADOURO_TOMADOR}' => $this->nfse->taker->address,
-            '{NUMERO_ENDERECO_TOMADOR}' => $this->nfse->taker->number,
-            '{BAIRRO_TOMADOR}' => $this->nfse->taker->neighborhood,
-            '{CEP_TOMADOR}' => Utils::mask((string) $this->nfse->taker->zipCode, '##.###-###'),
-            '{MUNICIPIO_TOMADOR}' => $this->nfse->taker->city,
-            '{ESTADO_TOMADOR}' => $this->nfse->taker->state,
+            '{LOGRADOURO_TOMADOR}' => $this->nfse->taker->address->address,
+            '{NUMERO_ENDERECO_TOMADOR}' => $this->nfse->taker->address->number,
+            '{BAIRRO_TOMADOR}' => $this->nfse->taker->address->neighborhood,
+            '{CEP_TOMADOR}' => Utils::mask((string) $this->nfse->taker->address->zipCode, '##.###-###'),
+            '{MUNICIPIO_TOMADOR}' => $this->nfse->taker->address->city,
+            '{ESTADO_TOMADOR}' => $this->nfse->taker->address->state,
             '{TELEFONE_TOMADOR}' => Utils::addPhoneMask($this->nfse->taker->phone),
             '{EMAIL_TOMADOR}' => $this->nfse->taker->email,
 
@@ -188,7 +206,7 @@ class PrintPDFNFse
             '{VALOR_DESCONTO_INCONDICIONADO}' => Utils::formatRealMoney($this->nfse->service->unconditionedDiscount ?? 0),
             '{BASE_CALCULO}' => Utils::formatRealMoney($this->nfse->service->calculationBase ?? 0),
             '{ALIQUOTA_SERVICOS}' => $this->nfse->service->aliquot * 100 . ' % ',
-            '{VALOR_ISS}' => Utils::formatRealMoney($this->nfse->service->issValue ?? 0),
+            '{VALOR_ISS}' => Utils::formatRealMoney($this->nfse->service->issValue ) ,
             '{VALOR_PIS}' => Utils::formatRealMoney($this->nfse->service->valuePis ?? 0),
             '{VALOR_COFINS}' => Utils::formatRealMoney($this->nfse->service->valueConfis ?? 0),
             '{VALOR_IR}' => Utils::formatRealMoney($this->nfse->service->valueIR ?? 0),
@@ -352,10 +370,10 @@ class PrintPDFNFse
             }
             .servicos {
                 padding: 0 2px;
-                font-size: 9px;
+                font-size: 12px;
             }
             .subTitulo {
-                font-size: 11px;
+                font-size: 12px;
                 font-weight: bold;
             }
         }';
@@ -370,26 +388,50 @@ class PrintPDFNFse
      * @return string The generated PDF content as a string.
      * @throws Exception If there is an error generating the PDF.
      */
-    private function generatePdf(string $html, string $outputType): string
-    {
-        try {
-            $mpdf = new Mpdf([
-                'default_font' => 'chelvetica',
-                'margin_top' => 10,
-                'margin_bottom' => 10
-            ]);
 
-            if ($this->nfse->cancellationCode) {
-                $mpdf->SetWatermarkText('NFS-e Cancelada');
-                $mpdf->showWatermarkText = true;
-            }
 
-            $mpdf->WriteHTML($html);
-            return $mpdf->Output('NFse.pdf', $outputType);
-        } catch (Exception $e) {
-            throw new Exception("Falha ao gerar PDF: " . $e->getMessage());
+private function generatePdf(string $html, string $outputType): string
+{
+    try {
+        $mpdf = new Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'default_font' => 'helvetica',
+            'margin_top' => 10,
+            'margin_bottom' => 10,
+            'margin_left' => 10,
+            'margin_right' => 10,
+            'tempDir' => sys_get_temp_dir()
+        ]);
+
+        $mpdf->useSubstitutions = false;
+        $mpdf->simpleTables = true;
+        $mpdf->packTableData = true;
+
+        if ($this->nfse->cancellationCode) {
+            $mpdf->SetWatermarkText('NFS-e Cancelada', 0.1);
+            $mpdf->showWatermarkText = true;
         }
+
+        // Extraia o CSS do HTML
+        preg_match('/<style.*?>(.*?)<\/style>/is', $html, $matches);
+        $css = $matches[1] ?? '';
+
+        // Remova o <style> do HTML antes de enviar o corpo
+        $htmlWithoutStyle = preg_replace('/<style.*?>.*?<\/style>/is', '', $html);
+
+        // Passa o CSS como HEADER_CSS
+        $mpdf->WriteHTML($css, HTMLParserMode::HEADER_CSS);
+
+        // Passa o HTML sem o <style>
+        $mpdf->WriteHTML($htmlWithoutStyle, HTMLParserMode::HTML_BODY);
+
+        return $mpdf->Output('', Destination::STRING_RETURN);
+
+    } catch (Exception $e) {
+        throw new Exception("Falha ao gerar PDF: " . $e->getMessage());
     }
+}
 
     /**
      * Adds a "CANCELADA" watermark to the PDF if the cancellation code is present.
@@ -417,10 +459,20 @@ class PrintPDFNFse
      *
      * @throws \InvalidArgumentException Se o tipo de sa da for inv lido.
      */
+    /**
+     * Validates the output type to ensure it's a valid value.
+     *
+     * @param string $outputType Tipo de sa da. Valores poss veis: I (visualiza o direta),
+     *                            D (download do arquivo PDF) e P (retorna o conte do do
+     *                            PDF em uma vari vel).
+     *
+     * @throws \InvalidArgumentException Se o tipo de sa da for inv lido.
+     */
     private function validateOutputType(string $outputType): void
     {
         if (!in_array($outputType, ['I', 'D', 'P'])) {
             throw new \InvalidArgumentException("Tipo de saída inválido: $outputType");
         }
     }
+
 }
