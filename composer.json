@@ -1,13 +1,13 @@
 {
-    "name": "cebpereira/nfse-bh-sdk",
+    "name": "aalvg/nfse-bh-sdk",
     "type": "library",
     "description": "Biblioteca para geração de NFSE de Belo Horizonte",
-    "homepage": "https://www.linkedin.com/in/cebpereira/",
+    "homepage": "https://www.linkedin.com/in/anderson_dev/",
     "keywords": ["nfse", "lib", "nfsebh"],
     "license": "MIT",
     "authors": [{
-        "name": "Carlos Pereira",
-        "email": "c.elandro.bp@gmail.com"
+        "name": "Anderson Alvarenga",
+        "email": "andersonalvarenga.ds@gmail.com"
     }],
     "minimum-stability": "stable",
     "prefer-stable": true,
